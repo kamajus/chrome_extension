@@ -15,8 +15,7 @@ def relative_path(path, goback=0):
     return os.path.abspath(os.path.join(os.getcwd(), *levels, path.strip()))
 
 
-def download_and_unzip_chrome_extension(extension_id, download_dir):
-    chrome_version = "120.0.0.0"
+def download_and_unzip_chrome_extension(extension_id, download_dir, chrome_version):
     crx_url = f"https://clients2.google.com/service/update2/crx?response=redirect&prodversion={chrome_version}&x=id%3D{extension_id}%26installsource%3Dondemand%26uc&acceptformat=crx2,crx3"
 
     response = get(crx_url)
@@ -98,13 +97,15 @@ lock = Lock()
 class Extension:
     def __init__(
         self,
+        chrome_version = "120.0.0.0",
         extension_link=None,
         extension_id=None,
         extension_name=None,
         force_update=False,
-        
         **kwargs,
     ):
+        self.chrome_version = chrome_version
+
         self.extension_link = extension_link
         self.force_update = force_update
 
@@ -137,7 +138,7 @@ class Extension:
         print(f"Downloading {self.extension_name} Extension ...")
         create_extensions_directory_if_not_exists()
         download_and_unzip_chrome_extension(
-            self.extension_id, self.extension_absolute_path
+            self.extension_id, self.extension_absolute_path, self.chrome_version
         )
 
     def get_files(self, ext):
