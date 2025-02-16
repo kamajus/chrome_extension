@@ -97,11 +97,11 @@ lock = Lock()
 class Extension:
     def __init__(
         self,
-        chrome_version = "120.0.0.0",
         extension_link=None,
         extension_id=None,
         extension_name=None,
         force_update=False,
+        chrome_version = "120.0.0.0",
         **kwargs,
     ):
         self.chrome_version = chrome_version
