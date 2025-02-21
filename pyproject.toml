@@ -1,12 +1,12 @@
 [project]
-name = "browser_extension"
-version = "0.0.1"
+name = "chrome_extension"
+version = "1.0.0"
 description = "Chrome Extension Python allows you to easily integrate Chrome extensions in web automation frameworks like Botasaurus, Selenium, and Playwright."
 authors = [
   { name="Carlos Mateus", email="carlosmatateumateus@gmail.com" },
 ]
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9,<4.0"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -14,11 +14,25 @@ classifiers = [
 license = { text = "MIT" }
 
 [project.urls]
-Homepage = "https://github.com/kamajus/browser_extension"
-Issues = "https://github.com/kamajus/browser_extension/issues"
+Homepage = "https://github.com/kamajus/chrome_extension"
+Issues = "https://github.com/kamajus/chrome_extension/issues"
+
+[[tool.poetry.source]]
+name = "pypi-public"
+url = "https://pypi.org/simple/"
+
+
+[tool.poetry.group.dev.dependencies]
+taskipy = "^1.14.1"
+isort = "^6.0.0"
+black = "^25.1.0"
+
+[tool.taskipy.tasks]
+lint = "isort chrome_extension/ && black chrome_extension/"
 
 [tool.poetry.dependencies]
-python = ">=3.8"
+build = "^1.2.2.post1"
+twine = "^6.1.0"
 
 [build-system]
 requires = ["poetry-core"]

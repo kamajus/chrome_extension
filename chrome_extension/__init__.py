@@ -1,21 +1,18 @@
-from urllib.parse import urlparse
 import glob
-from threading import Lock
-import re
-from requests import get
-from zipfile import ZipFile, BadZipFile
-from io import BytesIO
 import os
-from urllib.parse import unquote
-from .package_storage import PackageStorage
+import re
+from io import BytesIO
+from threading import Lock
+from urllib.parse import unquote, urlparse
+from zipfile import BadZipFile, ZipFile
+
+from package_storage import LocalStorage
+from requests import get
 
 
-def relative_path(path, goback=0):
-    levels = [".."] * (goback + -1)
-    return os.path.abspath(os.path.join(os.getcwd(), *levels, path.strip()))
-
-
-def download_and_unzip_chrome_extension(extension_id, download_dir, chrome_version):
+def download_and_unzip_chrome_extension(
+    extension_id: str, download_dir: str, chrome_version: str
+):
     crx_url = f"https://clients2.google.com/service/update2/crx?response=redirect&prodversion={chrome_version}&x=id%3D{extension_id}%26installsource%3Dondemand%26uc&acceptformat=crx2,crx3"
 
     response = get(crx_url)
@@ -81,16 +78,6 @@ class File:
         return file_contents
 
 
-def create_directory_if_not_exists(passed_path):
-    dir_path = relative_path(passed_path, 0)
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
-
-
-def create_extensions_directory_if_not_exists():
-    create_directory_if_not_exists("extensions/")
-
-
 lock = Lock()
 
 
@@ -101,17 +88,19 @@ class Extension:
         extension_id=None,
         extension_name=None,
         force_update=False,
-        chrome_version = "120.0.0.0",
+        chrome_version="120.0.0.0",
+        download_dir="extensions/",
         **kwargs,
     ):
-        self.chrome_version = chrome_version
+        os.makedirs(download_dir, exist_ok=True)
+        self.package_storage = LocalStorage(download_dir)
 
+        self.chrome_version = chrome_version
         self.extension_link = extension_link
         self.force_update = force_update
 
         if extension_link:
-
-            extension_name, extension_id  = extract_extension_id_and_name(
+            extension_name, extension_id = extract_extension_id_and_name(
                 extract_path_from_link(extension_link)
             )
 
@@ -125,35 +114,37 @@ class Extension:
             raise ValueError("Extension name is required.")
 
         self.kwargs = kwargs
-
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-        self.extension_path = f"extensions/{extension_name}"
+        if not download_dir:
+            raise ValueError("You must specify a download directory.")
 
-        self.extension_absolute_path = relative_path(self.extension_path)
+        self.download_dir = os.path.abspath(download_dir)
 
+        self.extension_path = os.path.join(self.download_dir, extension_name)
+        self.extension_absolute_path = self.extension_path
 
     def download(self):
-        print(f"Downloading {self.extension_name} Extension ...")
-        create_extensions_directory_if_not_exists()
+        print(f"Downloading {self.extension_name} Extension to {self.download_dir} ...")
+
         download_and_unzip_chrome_extension(
-            self.extension_id, self.extension_absolute_path, self.chrome_version
+            extension_id=self.extension_id,
+            download_dir=self.extension_absolute_path,
+            chrome_version=self.chrome_version,
         )
 
     def get_files(self, ext):
         files = glob.glob(self.extension_path + "/**/*" + ext, recursive=True)
         files = [os.path.abspath(file) for file in files]
-
         files = [File(file) for file in files]
-
         return files
 
     def exists(self):
         return os.path.exists(self.extension_absolute_path)
 
     def get_file(self, path):
-        return File(relative_path(self.extension_path + path))
+        return File(os.path.join(self.extension_path, path))
 
     def get_js_files(self):
         return self.get_files(".js")
@@ -168,26 +159,19 @@ class Extension:
         return self.get_files(".css")
 
     def should_update_files(self):
-
-        item = PackageStorage.get_item(self.extension_absolute_path, {})
+        item = self.package_storage.get_item(self.extension_absolute_path, {})
         extension_data = item.get(self.extension_id)
-
         if extension_data is None:
             return True
-        
         return extension_data != self.kwargs
 
     def updated_extension_data(self):
         dirname = self.extension_absolute_path
-
-        item = PackageStorage.get_item(dirname, {})
+        item = self.package_storage.get_item(dirname, {})
         item[self.extension_id] = self.kwargs
+        self.package_storage.set_item(dirname, item)
 
-        PackageStorage.set_item(dirname, item)
-
-    def update_files(
-        self,
-    ):
+    def update_files(self):
         pass
 
     def load(self, with_command_line_option=True):

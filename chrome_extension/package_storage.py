@@ -1,36 +1,37 @@
-import os
 import json
+import os
 
-def get_cache_file_path() -> str:
-    dr = os.path.abspath(os.path.join(os.path.dirname(__file__),  'package_storage.json'))
+
+def get_cache_file_path(cache_path: str) -> str:
+    dr = os.path.abspath(os.path.join(cache_path, "package_storage.json"))
     return dr
 
-class localStoragePyStorageException(Exception):
+
+class MethodNotImplemented(Exception):
     pass
 
 
 class BasicStorageBackend:
-    def raise_dummy_exception(self):
-        raise localStoragePyStorageException("Called dummy backend!")
-
-    def get_item(self, item: str, default:any = None) -> str:
-        self.raise_dummy_exception()
+    def get_item(self, item: str, default: any = None) -> str:
+        raise MethodNotImplemented()
 
     def set_item(self, item: str, value: any) -> None:
-        self.raise_dummy_exception()
+        raise MethodNotImplemented()
 
     def remove_item(self, item: str) -> None:
-        self.raise_dummy_exception()
+        raise MethodNotImplemented()
 
     def clear(self) -> None:
-        self.raise_dummy_exception()
+        raise MethodNotImplemented()
+
 
 class JSONStorageBackend(BasicStorageBackend):
-    def __init__(self) -> None:
+    def __init__(self, cache_path: str) -> None:
+        self.cache_path = cache_path
         self.refresh()
 
     def refresh(self):
-        self.json_path = get_cache_file_path()
+        self.json_path = get_cache_file_path(self.cache_path)
         self.json_data = {}
 
         if not os.path.isfile(self.json_path):
@@ -38,16 +39,18 @@ class JSONStorageBackend(BasicStorageBackend):
 
         with open(self.json_path, "r") as json_file:
             self.json_data = json.load(json_file)
-        
-    def commit_to_disk(self):
-        with open(self.json_path, "w") as json_file:
-            json.dump(self.json_data, json_file, indent=4)
 
-    def get_item(self, key: str, default = None) -> str:
+    def commit_to_disk(self):
+        try:
+            with open(self.json_path, "w") as json_file:
+                json.dump(self.json_data, json_file, indent=4)
+        except:
+            print("erro")
+
+    def get_item(self, key: str, default=None) -> str:
         if key in self.json_data:
             return self.json_data[key]
         return default
-
 
     def items(self):
         return self.json_data
@@ -56,26 +59,26 @@ class JSONStorageBackend(BasicStorageBackend):
         self.json_data[key] = value
         self.commit_to_disk()
 
-    def remove_item(self, key: str) -> None: 
+    def remove_item(self, key: str) -> None:
         if key in self.json_data:
             self.json_data.pop(key)
             self.commit_to_disk()
-
 
     def clear(self) -> None:
         if os.path.isfile(self.json_path):
             os.remove(self.json_path)
         self.json_data = {}
         self.commit_to_disk()
-    
-class _LocalStorage:
-    def __init__(self) -> None:
-        self.storage_backend_instance = JSONStorageBackend()
+
+
+class LocalStorage:
+    def __init__(self, cache_path: str) -> None:
+        self.storage_backend_instance = JSONStorageBackend(cache_path)
 
     def refresh(self) -> None:
         self.storage_backend_instance.refresh()
-    
-    def get_item(self, item: str, default = None) -> any:
+
+    def get_item(self, item: str, default=None) -> any:
         return self.storage_backend_instance.get_item(item, default)
 
     def set_item(self, item: str, value: any) -> None:
@@ -89,9 +92,3 @@ class _LocalStorage:
 
     def items(self):
         return self.storage_backend_instance.items()
-
-
-    # def get_new_number(self):
-    #     return self.storage_backend_instance.get_new_number()
-
-PackageStorage = _LocalStorage()

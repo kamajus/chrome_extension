@@ -14,4 +14,4 @@ README.txt
 Pipfile
 Pipfile.lock
 temp.py
-browser_extension/package_storage.json
+chrome_extension/package_storage.json
