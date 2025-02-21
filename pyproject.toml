@@ -1,6 +1,6 @@
 [project]
 name = "chrome_extension"
-version = "1.0.0"
+version = "1.0.1"
 description = "Chrome Extension Python allows you to easily integrate Chrome extensions in web automation frameworks like Botasaurus, Selenium, and Playwright."
 authors = [
   { name="Carlos Mateus", email="carlosmatateumateus@gmail.com" },
