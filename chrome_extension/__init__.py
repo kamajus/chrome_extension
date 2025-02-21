@@ -6,7 +6,7 @@ from threading import Lock
 from urllib.parse import unquote, urlparse
 from zipfile import BadZipFile, ZipFile
 
-from package_storage import LocalStorage
+from .package_storage import LocalStorage
 from requests import get
 
 
